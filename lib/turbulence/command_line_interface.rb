@@ -14,6 +14,30 @@ class Turbulence
     attr_reader :directory
     def initialize(argv)
       Turbulence::Calculators::Churn.scm = Scm::Git
+      parse_options!(argv)
+      @directory = argv.first || Dir.pwd
+    end
+
+    def copy_templates_into(directory)
+      FileUtils.cp TEMPLATE_FILES, directory
+    end
+    private :copy_templates_into
+
+    def generate_bundle
+      FileUtils.mkdir_p("turbulence")
+      Dir.chdir("turbulence") do
+        copy_templates_into(Dir.pwd)
+        File.open("cc.js", "w") do |f|
+          f.write Turbulence::ScatterPlotGenerator.from(Turbulence.new(directory,STDOUT).metrics).to_js
+        end
+      end
+    end
+
+    def open_bundle
+      Launchy.open("file://#{directory}/turbulence/turbulence.html")
+    end
+    
+    def parse_options!(argv)
       OptionParser.new do |opts|
         opts.banner = "Usage: bule [options] [dir]"
 
@@ -36,27 +60,6 @@ class Turbulence
           exit
         end
       end.parse!(argv)
-
-      @directory = argv.first || Dir.pwd
-    end
-
-    def copy_templates_into(directory)
-      FileUtils.cp TEMPLATE_FILES, directory
-    end
-    private :copy_templates_into
-
-    def generate_bundle
-      FileUtils.mkdir_p("turbulence")
-      Dir.chdir("turbulence") do
-        copy_templates_into(Dir.pwd)
-        File.open("cc.js", "w") do |f|
-          f.write Turbulence::ScatterPlotGenerator.from(Turbulence.new(directory,STDOUT).metrics).to_js
-        end
-      end
-    end
-
-    def open_bundle
-      Launchy.open("file://#{directory}/turbulence/turbulence.html")
     end
   end
 end
