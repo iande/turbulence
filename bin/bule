@@ -4,7 +4,7 @@ require 'turbulence/checks_environment'
 
 cli = Turbulence::CommandLineInterface.new(ARGV)
 
-unless Turbulence::ChecksEnvironment.scm_repo?(Dir.pwd)
+unless cli.scm_repo?
   STDERR.puts "Turbulence could not calculate metrics, as we could not find a repository in the current directory."
   STDERR.puts "Please run bule from inside a repository."
   exit

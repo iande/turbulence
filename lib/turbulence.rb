@@ -1,20 +1,29 @@
 require 'turbulence/scatter_plot_generator'
 require 'turbulence/command_line_interface'
-require 'turbulence/checks_environment'
 require 'turbulence/calculators/churn'
 require 'turbulence/calculators/complexity'
 
 class Turbulence
   CODE_DIRECTORIES = ["app/models", "app/controllers", "app/helpers", "lib"]
-  CALCULATORS = [Turbulence::Calculators::Complexity, Turbulence::Calculators::Churn]
+  #CALCULATORS = 
 
-  attr_reader :metrics
-  def initialize(directory, output = nil)
+  attr_reader :churn, :complexity, :scm, :directory
+  def initialize(directory, opts, output = nil)
     @output = output
+    @directory = directory
+    @scm = opts[:scm] || Scm::Git
+    @churn = Turbulence::Calculators::Churn.new opts[:churn]
+    @complexity = Turbulence::Calculators::Complexity.new opts[:complexity]
+    # Ewww
+    @churn.scm = scm
+  end
+  
+  def metrics
     @metrics = {}
     Dir.chdir(directory) do
-      CALCULATORS.each(&method(:calculate_metrics_with))
+      [complexity, churn].each(&method(:calculate_metrics_with))
     end
+    @metrics
   end
 
   def files_of_interest

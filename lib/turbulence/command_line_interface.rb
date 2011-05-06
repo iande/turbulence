@@ -11,11 +11,11 @@ class Turbulence
       File.join(TURBULENCE_TEMPLATE_PATH, filename)
     }
 
-    attr_reader :directory
+    attr_reader :directory, :turbulence
     def initialize(argv)
-      Turbulence::Calculators::Churn.scm = Scm::Git
-      parse_options!(argv)
+      options = parse_options!(argv)
       @directory = argv.first || Dir.pwd
+      @turbulence = Turbulence.new(directory, options, STDOUT)
     end
 
     def copy_templates_into(directory)
@@ -28,7 +28,7 @@ class Turbulence
       Dir.chdir("turbulence") do
         copy_templates_into(Dir.pwd)
         File.open("cc.js", "w") do |f|
-          f.write Turbulence::ScatterPlotGenerator.from(Turbulence.new(directory,STDOUT).metrics).to_js
+          f.write Turbulence::ScatterPlotGenerator.from(turbulence.metrics).to_js
         end
       end
     end
@@ -37,7 +37,12 @@ class Turbulence
       Launchy.open("file://#{directory}/turbulence/turbulence.html")
     end
     
+    def scm_repo?
+      @turbulence.scm.is_repo? directory
+    end
+    
     def parse_options!(argv)
+      opthash = { :scm => Scm::Git, :churn => {}, :complexity => {} }
       OptionParser.new do |opts|
         opts.banner = "Usage: bule [options] [dir]"
 
@@ -45,14 +50,14 @@ class Turbulence
           case s
           when "git", "", nil
           when "p4"
-            Turbulence::Calculators::Churn.scm = Scm::Perforce
+            opthash[:scm] = Scm::Perforce
           end
         end
         opts.on('--churn-range since..until', String, 'commit range to compute file churn') do |s|
-          Turbulence::Calculators::Churn.commit_range = s
+          opthash[:churn][:commit_range] = s
         end
         opts.on('--churn-mean', 'calculate mean churn instead of cummulative') do
-          Turbulence::Calculators::Churn.compute_mean = true
+          opthash[:churn][:compute_mean] = true
         end
 
         opts.on_tail("-h", "--help", "Show this message") do
@@ -60,6 +65,7 @@ class Turbulence
           exit
         end
       end.parse!(argv)
+      opthash
     end
   end
 end
