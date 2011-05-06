@@ -1,7 +1,6 @@
-require 'open3'
 class Turbulence
   module Scm
-    class Git 
+    class Git
       class << self
         def log_command(commit_range)
           `git log --all -M -C --numstat --format="%n" #{commit_range}`
@@ -9,9 +8,7 @@ class Turbulence
 
         def is_repo?(directory)
           FileUtils.cd(directory) {
-            Open3.popen3("git status") do |_, _, err, _|
-            return !(err.read =~ /Not a git repository/)  
-            end
+            return !(`git status 2>&1` =~ /Not a git repository/)
           }
         end
       end
